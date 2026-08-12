@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bandcamp Improver
 // @namespace    https://github.com/local/bandcamp-improver
-// @version      0.3.0
+// @version      0.4.0
 // @description  Oznacza posiadane wydania i grupuje dyskografie według wykonawców.
 // @author       local
 // @match        https://bandcamp.com/*
@@ -116,6 +116,16 @@
     return merged;
   }
 
+  function releaseTypeLabel(type) {
+    if (type === "album") {
+      return "album";
+    } else if (type === "track") {
+      return "singiel";
+    }
+
+    return null;
+  }
+
   function hasNativeOwnership(pageDocument) {
     return Boolean(
       pageDocument?.querySelector?.("#collect-item.purchased #purchased-msg"),
@@ -130,6 +140,7 @@
       mergeReleases,
       normalizeArtistName,
       ownedKeysFromSummary,
+      releaseTypeLabel,
     };
     return;
   }
@@ -372,6 +383,16 @@
         overflow-wrap: anywhere;
       }
 
+      .bc-improver-release-type {
+        display: block;
+        font-size: 10px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        margin-top: 5px;
+        opacity: 0.75;
+        text-transform: uppercase;
+      }
+
       @media (max-width: 700px) {
         .bc-improver-artists-grid,
         .bc-improver-release-grid {
@@ -472,6 +493,18 @@
     return card;
   }
 
+  function appendReleaseTypeLabel(titleElement, type) {
+    const label = releaseTypeLabel(type);
+    if (!titleElement || !label || titleElement.querySelector(".bc-improver-release-type")) {
+      return;
+    }
+
+    const typeElement = document.createElement("span");
+    typeElement.className = "bc-improver-release-type secondaryText";
+    typeElement.textContent = label;
+    titleElement.append(typeElement);
+  }
+
   function createReleaseCard(item) {
     const card = document.createElement("li");
     card.className = "bc-improver-release-card";
@@ -484,9 +517,39 @@
     const title = document.createElement("p");
     title.className = "title primaryText";
     title.textContent = item.title;
+    appendReleaseTypeLabel(title, item.type);
     link.append(title);
     card.append(link);
     return card;
+  }
+
+  function addReleaseTypeLabels(root) {
+    const selector = '[data-item-id^="album-"], [data-item-id^="track-"]';
+    const elements = root.matches?.(selector)
+      ? [root, ...root.querySelectorAll(selector)]
+      : [...root.querySelectorAll(selector)];
+
+    for (const element of elements) {
+      const match = /^(album|track)-\d+$/.exec(element.dataset.itemId ?? "");
+      if (match) {
+        appendReleaseTypeLabel(element.querySelector(".title"), match[1]);
+      }
+    }
+  }
+
+  function observeReleaseTypeLabels(musicGrid) {
+    addReleaseTypeLabels(musicGrid);
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof Element) {
+            addReleaseTypeLabels(node);
+          }
+        }
+      }
+    });
+    observer.observe(musicGrid, { childList: true, subtree: true });
   }
 
   function parseClientItems(musicGrid) {
@@ -515,6 +578,7 @@
 
         const titleElement = element.querySelector(".title")?.cloneNode(true);
         titleElement?.querySelector(".artist-override")?.remove();
+        titleElement?.querySelector(".bc-improver-release-type")?.remove();
         const image = element.querySelector(".art img");
         const imageUrl = image?.dataset.original || image?.src || "";
         const artId = /\/a(\d+)_/.exec(imageUrl)?.[1];
@@ -744,6 +808,7 @@
 
     addStyles();
     const artistBrowser = setupArtistBrowser(musicGrid);
+    observeReleaseTypeLabels(musicGrid);
     try {
       const ownedKeys = await loadOwnedKeys();
       markDiscography(ownedKeys);

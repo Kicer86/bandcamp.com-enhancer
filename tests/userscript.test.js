@@ -8,6 +8,7 @@ const {
   mergeReleases,
   normalizeArtistName,
   ownedKeysFromSummary,
+  releaseTypeLabel,
 } = require("../bandcamp-improver.user.js");
 
 test("extracts Bandcamp keys from discography item identifiers", () => {
@@ -88,4 +89,11 @@ test("merges rendered and deferred catalog items without duplicates", () => {
     mergeReleases(rendered, deferred).map((item) => item.title),
     ["Newest", "Single", "Older"],
   );
+});
+
+test("labels Bandcamp release types in Polish", () => {
+  assert.equal(releaseTypeLabel("album"), "album");
+  assert.equal(releaseTypeLabel("track"), "singiel");
+  assert.equal(releaseTypeLabel("merch"), null);
+  assert.equal(releaseTypeLabel(null), null);
 });

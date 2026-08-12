@@ -5,6 +5,7 @@ Userscript dla Firefoksa i Greasemonkey, który oznacza kupione wydania i uspraw
 Obecna wersja MVP:
 
 - dodaje znaczek **✓ Masz** na okładkach w dyskografii artysty (`/music`),
+- pokazuje pod każdym wydaniem jego typ: **ALBUM** albo **SINGIEL**, także dla pozycji doładowywanych przez Bandcampa,
 - na stronie albumu lub utworu pozostawia natywny komunikat Bandcampa **You own this**, bez powielania go własnym znaczkiem,
 - na kontach bez natywnej zakładki **artists** tworzy ją z pełnego katalogu wydań,
 - grupuje warianty nazwy wykonawcy bez uwzględniania wielkości liter, odstępów, znaków specjalnych i akcentów (np. `WolfClub` oraz `W O L F C L U B`),
