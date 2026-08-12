@@ -16,11 +16,15 @@ Current MVP features:
 ## Installation
 
 1. Install [Greasemonkey for Firefox](https://addons.mozilla.org/firefox/addon/greasemonkey/).
-2. In Greasemonkey, create a new user script.
-3. Replace its contents with the complete `bandcamp-com-enhancer.user.js` file and save it.
+2. Open [the installation script](https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js) in Firefox.
+3. Confirm the installation in Greasemonkey.
 4. Log in to Bandcamp and open any artist's discography.
 
 After making a new purchase, use **Bandcamp.com Enhancer: refresh collection** from the Greasemonkey menu to clear the cache immediately.
+
+## Updates
+
+Greasemonkey periodically checks the installation URL for a newer `@version` and offers an update automatically. Install the script from the GitHub link above rather than by copying it into a new local script; this one-time reinstall is required for existing manual installations.
 
 ## Privacy and limitations
 

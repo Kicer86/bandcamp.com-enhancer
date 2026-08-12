@@ -1,9 +1,13 @@
 // ==UserScript==
 // @name         Bandcamp.com Enhancer
 // @namespace    https://github.com/Kicer86/bandcamp.com-enhancer
-// @version      0.6.0
+// @version      0.7.0
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
+// @homepageURL  https://github.com/Kicer86/bandcamp.com-enhancer
+// @supportURL   https://github.com/Kicer86/bandcamp.com-enhancer/issues
+// @downloadURL  https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
+// @updateURL    https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
 // @match        https://bandcamp.com/*
 // @match        https://*.bandcamp.com/*
 // @connect      bandcamp.com
