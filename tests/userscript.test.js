@@ -2,8 +2,11 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  groupReleasesByArtist,
   hasNativeOwnership,
   keyFromGridItemId,
+  mergeReleases,
+  normalizeArtistName,
   ownedKeysFromSummary,
 } = require("../bandcamp-improver.user.js");
 
@@ -44,4 +47,45 @@ test("recognizes Bandcamp's native visible ownership message", () => {
   assert.equal(hasNativeOwnership(ownedPage), true);
   assert.equal(hasNativeOwnership(unownedPage), false);
   assert.equal(hasNativeOwnership(null), false);
+});
+
+test("normalizes artist spelling without case, spacing, punctuation, or accents", () => {
+  assert.equal(normalizeArtistName("WolfClub"), "wolfclub");
+  assert.equal(normalizeArtistName("W O L F C L U B"), "wolfclub");
+  assert.equal(normalizeArtistName("W.O.L.F-C.L.U.B!"), "wolfclub");
+  assert.equal(normalizeArtistName("MØNTRÉAL Łódź"), "montreallodz");
+});
+
+test("groups releases by normalized artist while preserving variants", () => {
+  const releases = [
+    { id: 1, artist: "W O L F C L U B", title: "One" },
+    { id: 2, artist: "WolfClub", title: "Two" },
+    { id: 3, artist: "Other Artist", title: "Three" },
+    { id: 4, title: "Compilation" },
+  ];
+
+  const groups = groupReleasesByArtist(releases);
+  const wolfClub = groups.find((group) => group.key === "wolfclub");
+  const various = groups.find((group) => group.key === "variousartists");
+
+  assert.equal(wolfClub.name, "W O L F C L U B");
+  assert.deepEqual(wolfClub.variants, ["W O L F C L U B", "WolfClub"]);
+  assert.deepEqual(wolfClub.items.map((item) => item.id), [1, 2]);
+  assert.equal(various.items[0].id, 4);
+});
+
+test("merges rendered and deferred catalog items without duplicates", () => {
+  const rendered = [
+    { type: "album", id: 1, title: "Newest" },
+    { type: "track", id: 2, title: "Single" },
+  ];
+  const deferred = [
+    { type: "album", id: 1, title: "Duplicate" },
+    { type: "album", id: 3, title: "Older" },
+  ];
+
+  assert.deepEqual(
+    mergeReleases(rendered, deferred).map((item) => item.title),
+    ["Newest", "Single", "Older"],
+  );
 });

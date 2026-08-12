@@ -1,11 +1,14 @@
 # Bandcamp Improver
 
-Userscript dla Firefoksa i Greasemonkey, który wyraźnie oznacza kupione wydania na stronach Bandcampa.
+Userscript dla Firefoksa i Greasemonkey, który oznacza kupione wydania i usprawnia przeglądanie dużych dyskografii na Bandcampie.
 
 Obecna wersja MVP:
 
 - dodaje znaczek **✓ Masz** na okładkach w dyskografii artysty (`/music`),
 - na stronie albumu lub utworu pozostawia natywny komunikat Bandcampa **You own this**, bez powielania go własnym znaczkiem,
+- na kontach bez natywnej zakładki **artists** tworzy ją z pełnego katalogu wydań,
+- grupuje warianty nazwy wykonawcy bez uwzględniania wielkości liter, odstępów, znaków specjalnych i akcentów (np. `WolfClub` oraz `W O L F C L U B`),
+- pozwala filtrować wykonawców i po kliknięciu pokazuje wszystkie przypisane do nich wydania,
 - korzysta z zalogowanej sesji Bandcampa — nie prosi o hasło ani nazwę profilu,
 - zapisuje lokalnie tylko identyfikatory kupionych wydań i odświeża je co 6 godzin.
 

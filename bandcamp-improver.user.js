@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bandcamp Improver
 // @namespace    https://github.com/local/bandcamp-improver
-// @version      0.2.0
-// @description  Pokazuje wyraźne oznaczenie przy wydaniach, które masz już w kolekcji Bandcamp.
+// @version      0.3.0
+// @description  Oznacza posiadane wydania i grupuje dyskografie według wykonawców.
 // @author       local
 // @match        https://bandcamp.com/*
 // @match        https://*.bandcamp.com/*
@@ -21,6 +21,8 @@
   const CACHE_KEY = "bandcamp-improver-owned-v1";
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   const SUMMARY_URL = "https://bandcamp.com/api/fan/2/collection_summary";
+  const ARTISTS_HASH = "#bc-artists";
+  const ARTIST_HASH_PREFIX = "#bc-artist=";
 
   function keyFromGridItemId(itemId) {
     if (typeof itemId !== "string") {
@@ -46,6 +48,74 @@
       .map(([key]) => key);
   }
 
+  function normalizeArtistName(name) {
+    if (typeof name !== "string") {
+      return "";
+    }
+
+    return name
+      .normalize("NFKD")
+      .replace(/[łŁ]/g, "l")
+      .replace(/[øØ]/g, "o")
+      .replace(/[đĐðÐ]/g, "d")
+      .replace(/[þÞ]/g, "th")
+      .replace(/[æÆ]/g, "ae")
+      .replace(/[œŒ]/g, "oe")
+      .replace(/ß/g, "ss")
+      .replace(/\p{Mark}/gu, "")
+      .toLocaleLowerCase("en")
+      .replace(/[^\p{Letter}\p{Number}]/gu, "");
+  }
+
+  function groupReleasesByArtist(items, fallbackArtist = "Various Artists") {
+    const groupsByKey = new Map();
+
+    for (const item of Array.isArray(items) ? items : []) {
+      const artist =
+        typeof item?.artist === "string" && item.artist.trim()
+          ? item.artist.trim()
+          : fallbackArtist;
+      const key = normalizeArtistName(artist);
+      if (!key) {
+        continue;
+      }
+
+      let group = groupsByKey.get(key);
+      if (!group) {
+        group = { key, name: artist, variants: [], items: [] };
+        groupsByKey.set(key, group);
+      }
+
+      if (!group.variants.includes(artist)) {
+        group.variants.push(artist);
+      }
+      group.items.push(item);
+    }
+
+    return [...groupsByKey.values()].sort((left, right) =>
+      left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
+    );
+  }
+
+  function mergeReleases(...releaseLists) {
+    const merged = [];
+    const seen = new Set();
+
+    for (const item of releaseLists.flat()) {
+      if (!item || !item.type || !Number.isInteger(item.id)) {
+        continue;
+      }
+
+      const key = `${item.type}-${item.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
+      }
+    }
+
+    return merged;
+  }
+
   function hasNativeOwnership(pageDocument) {
     return Boolean(
       pageDocument?.querySelector?.("#collect-item.purchased #purchased-msg"),
@@ -54,8 +124,11 @@
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
+      groupReleasesByArtist,
       hasNativeOwnership,
       keyFromGridItemId,
+      mergeReleases,
+      normalizeArtistName,
       ownedKeysFromSummary,
     };
     return;
@@ -172,6 +245,150 @@
         width: 14px;
       }
 
+      .bc-improver-artists-view[hidden],
+      #music-grid[hidden] {
+        display: none !important;
+      }
+
+      .bc-improver-artists-toolbar {
+        align-items: center;
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        margin: 0 0 24px;
+      }
+
+      .bc-improver-artists-toolbar h2 {
+        font-size: 20px;
+        margin: 0;
+      }
+
+      .bc-improver-artist-filter {
+        background: #fff;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        box-sizing: border-box;
+        color: #222;
+        font: 14px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        max-width: 280px;
+        padding: 8px 10px;
+        width: 45%;
+      }
+
+      .bc-improver-artists-grid {
+        display: grid;
+        gap: 26px 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .bc-improver-artist-card[hidden] {
+        display: none;
+      }
+
+      .bc-improver-artist-card a {
+        display: block;
+        text-decoration: none;
+      }
+
+      .bc-improver-artist-art {
+        aspect-ratio: 1;
+        background: rgba(127, 127, 127, 0.15);
+        margin-bottom: 8px;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      .bc-improver-artist-art img {
+        display: block;
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .bc-improver-artist-name {
+        font-size: 14px;
+        font-weight: bold;
+        overflow-wrap: anywhere;
+      }
+
+      .bc-improver-artist-count,
+      .bc-improver-artist-variants {
+        font-size: 12px;
+        margin-top: 3px;
+      }
+
+      .bc-improver-artist-detail-header {
+        margin-bottom: 24px;
+      }
+
+      .bc-improver-artist-detail-header h2 {
+        font-size: 22px;
+        margin: 10px 0 0;
+      }
+
+      .bc-improver-back-link {
+        font-size: 13px;
+      }
+
+      .bc-improver-release-grid {
+        display: grid;
+        gap: 28px 18px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .bc-improver-release-card {
+        min-width: 0;
+      }
+
+      .bc-improver-release-card > a {
+        display: block;
+        text-decoration: none;
+      }
+
+      .bc-improver-release-card .art {
+        aspect-ratio: 1;
+        background: rgba(127, 127, 127, 0.15);
+        margin-bottom: 7px;
+        overflow: hidden;
+      }
+
+      .bc-improver-release-card .art img {
+        display: block;
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .bc-improver-release-card .title {
+        font-size: 12px;
+        line-height: 1.25;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 700px) {
+        .bc-improver-artists-grid,
+        .bc-improver-release-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .bc-improver-artists-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .bc-improver-artist-filter {
+          max-width: none;
+          width: 100%;
+        }
+      }
+
       .bc-improver-notice {
         background: #222;
         border-radius: 4px;
@@ -213,19 +430,282 @@
     return badge;
   }
 
-  function markDiscography(ownedKeys) {
-    document.querySelectorAll("#music-grid [data-item-id]").forEach((item) => {
-      const key = keyFromGridItemId(item.dataset.itemId);
-      if (!key || !ownedKeys.has(key) || item.querySelector(".bc-improver-owned-badge")) {
+  function releaseCountLabel(count) {
+    return count === 1 ? "1 wydanie" : `${count} wydań`;
+  }
+
+  function createArtwork(artId, className) {
+    const art = document.createElement("div");
+    art.className = className;
+    if (Number.isInteger(artId)) {
+      const image = document.createElement("img");
+      image.alt = "";
+      image.loading = "lazy";
+      image.src = `https://f4.bcbits.com/img/a${artId}_2.jpg`;
+      art.append(image);
+    }
+    return art;
+  }
+
+  function createArtistCard(group) {
+    const card = document.createElement("li");
+    card.className = "bc-improver-artist-card";
+    card.dataset.artistKey = group.key;
+
+    const link = document.createElement("a");
+    link.href = `${ARTIST_HASH_PREFIX}${encodeURIComponent(group.key)}`;
+    link.title =
+      group.variants.length > 1
+        ? `Połączone warianty: ${group.variants.join(", ")}`
+        : group.name;
+    link.append(createArtwork(group.items[0]?.art_id, "bc-improver-artist-art art"));
+
+    const name = document.createElement("div");
+    name.className = "bc-improver-artist-name primaryText";
+    name.textContent = group.name;
+
+    const count = document.createElement("div");
+    count.className = "bc-improver-artist-count secondaryText";
+    count.textContent = releaseCountLabel(group.items.length);
+    link.append(name, count);
+    card.append(link);
+    return card;
+  }
+
+  function createReleaseCard(item) {
+    const card = document.createElement("li");
+    card.className = "bc-improver-release-card";
+    card.dataset.itemId = `${item.type}-${item.id}`;
+
+    const link = document.createElement("a");
+    link.href = new URL(item.page_url, location.origin).href;
+    link.append(createArtwork(item.art_id, "art"));
+
+    const title = document.createElement("p");
+    title.className = "title primaryText";
+    title.textContent = item.title;
+    link.append(title);
+    card.append(link);
+    return card;
+  }
+
+  function parseClientItems(musicGrid) {
+    const serialized = musicGrid?.getAttribute("data-client-items");
+    if (!serialized) {
+      return [];
+    }
+
+    try {
+      const items = JSON.parse(serialized);
+      return Array.isArray(items) ? items : [];
+    } catch (error) {
+      console.warn("Bandcamp Improver: nieprawidłowy katalog wydań", error);
+      return [];
+    }
+  }
+
+  function readRenderedItems(musicGrid) {
+    return [...musicGrid.querySelectorAll("[data-item-id]")]
+      .map((element) => {
+        const match = /^(album|track)-(\d+)$/.exec(element.dataset.itemId ?? "");
+        const link = element.querySelector(":scope > a[href]");
+        if (!match || !link) {
+          return null;
+        }
+
+        const titleElement = element.querySelector(".title")?.cloneNode(true);
+        titleElement?.querySelector(".artist-override")?.remove();
+        const image = element.querySelector(".art img");
+        const imageUrl = image?.dataset.original || image?.src || "";
+        const artId = /\/a(\d+)_/.exec(imageUrl)?.[1];
+        const artist = element.querySelector(".artist-override")?.textContent.trim();
+
+        return {
+          art_id: artId ? Number(artId) : null,
+          artist: artist || undefined,
+          id: Number(match[2]),
+          page_url: link.getAttribute("href"),
+          title: titleElement?.textContent.trim() || "Bez tytułu",
+          type: match[1],
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function setupArtistBrowser(musicGrid) {
+    const navbar = document.querySelector("#band-navbar");
+    if (!navbar) {
+      return null;
+    }
+
+    const alreadyHasArtistsTab = [...navbar.querySelectorAll("a[href]")].some(
+      (link) => new URL(link.href, location.origin).pathname === "/artists",
+    );
+    if (alreadyHasArtistsTab) {
+      return null;
+    }
+
+    const catalog = mergeReleases(
+      readRenderedItems(musicGrid),
+      parseClientItems(musicGrid),
+    );
+    const groups = groupReleasesByArtist(catalog);
+    if (groups.length < 2) {
+      return null;
+    }
+
+    const musicLink = [...navbar.querySelectorAll("a[href]")].find(
+      (link) => new URL(link.href, location.origin).pathname === "/music",
+    );
+    if (!musicLink) {
+      return null;
+    }
+
+    const tabItem = document.createElement("li");
+    const tabLink = document.createElement("a");
+    tabLink.href = ARTISTS_HASH;
+    tabLink.textContent = "artists";
+    tabItem.append(tabLink);
+    musicLink.closest("li").before(tabItem);
+
+    const view = document.createElement("section");
+    view.className = "bc-improver-artists-view";
+    view.hidden = true;
+
+    const artistsPanel = document.createElement("div");
+    const toolbar = document.createElement("div");
+    toolbar.className = "bc-improver-artists-toolbar";
+
+    const heading = document.createElement("h2");
+    heading.className = "primaryText";
+    heading.textContent = `Artists (${groups.length})`;
+
+    const filter = document.createElement("input");
+    filter.className = "bc-improver-artist-filter";
+    filter.type = "search";
+    filter.placeholder = "Filtruj wykonawców";
+    filter.setAttribute("aria-label", "Filtruj wykonawców");
+    toolbar.append(heading, filter);
+
+    const artistsGrid = document.createElement("ol");
+    artistsGrid.className = "bc-improver-artists-grid";
+    const artistCards = groups.map(createArtistCard);
+    artistsGrid.append(...artistCards);
+    artistsPanel.append(toolbar, artistsGrid);
+
+    const detailPanel = document.createElement("div");
+    view.append(artistsPanel, detailPanel);
+    musicGrid.before(view);
+
+    filter.addEventListener("input", () => {
+      const query = normalizeArtistName(filter.value);
+      for (const card of artistCards) {
+        card.hidden = Boolean(query) && !card.dataset.artistKey.includes(query);
+      }
+    });
+
+    let ownedKeys = new Set();
+
+    function renderArtist(group) {
+      const header = document.createElement("header");
+      header.className = "bc-improver-artist-detail-header";
+
+      const back = document.createElement("a");
+      back.className = "bc-improver-back-link primaryText";
+      back.href = ARTISTS_HASH;
+      back.textContent = "← wszyscy wykonawcy";
+
+      const artistHeading = document.createElement("h2");
+      artistHeading.className = "primaryText";
+      artistHeading.textContent = group.name;
+      header.append(back, artistHeading);
+
+      if (group.variants.length > 1) {
+        const variants = document.createElement("div");
+        variants.className = "bc-improver-artist-variants secondaryText";
+        variants.textContent = `Połączone nazwy: ${group.variants.join(" · ")}`;
+        header.append(variants);
+      }
+
+      const count = document.createElement("div");
+      count.className = "bc-improver-artist-count secondaryText";
+      count.textContent = releaseCountLabel(group.items.length);
+      header.append(count);
+
+      const releases = document.createElement("ol");
+      releases.className = "bc-improver-release-grid";
+      releases.append(...group.items.map(createReleaseCard));
+      detailPanel.replaceChildren(header, releases);
+      markDiscography(ownedKeys);
+    }
+
+    function applyRoute() {
+      const isArtistsIndex = location.hash === ARTISTS_HASH;
+      let artistKey = null;
+      if (location.hash.startsWith(ARTIST_HASH_PREFIX)) {
+        try {
+          artistKey = decodeURIComponent(
+            location.hash.slice(ARTIST_HASH_PREFIX.length),
+          );
+        } catch (error) {
+          console.warn("Bandcamp Improver: nieprawidłowy adres wykonawcy", error);
+        }
+      }
+      const group = artistKey
+        ? groups.find((candidate) => candidate.key === artistKey)
+        : null;
+      const isArtistRoute = isArtistsIndex || Boolean(group);
+
+      musicGrid.hidden = isArtistRoute;
+      view.hidden = !isArtistRoute;
+      tabLink.classList.toggle("active", isArtistRoute);
+      tabLink.classList.toggle("primaryText", isArtistRoute);
+      musicLink.classList.toggle("active", !isArtistRoute);
+      musicLink.classList.toggle("primaryText", !isArtistRoute);
+
+      if (!isArtistRoute) {
         return;
       }
 
-      const art = item.querySelector(".art");
-      if (art) {
-        art.classList.add("bc-improver-owned-anchor");
-        art.append(createBadge("Masz", "cover"));
+      artistsPanel.hidden = Boolean(group);
+      detailPanel.hidden = !group;
+      if (group) {
+        renderArtist(group);
       }
-    });
+    }
+
+    window.addEventListener("hashchange", applyRoute);
+    applyRoute();
+
+    return {
+      setOwnedKeys(keys) {
+        ownedKeys = keys;
+        markDiscography(keys);
+      },
+    };
+  }
+
+  function markDiscography(ownedKeys) {
+    document
+      .querySelectorAll(
+        "#music-grid [data-item-id], .bc-improver-release-grid [data-item-id]",
+      )
+      .forEach((item) => {
+        const key = keyFromGridItemId(item.dataset.itemId);
+        if (
+          !key ||
+          !ownedKeys.has(key) ||
+          item.querySelector(".bc-improver-owned-badge")
+        ) {
+          return;
+        }
+
+        const art = item.querySelector(".art");
+        if (art) {
+          art.classList.add("bc-improver-owned-anchor");
+          art.append(createBadge("Masz", "cover"));
+        }
+      });
   }
 
   function showErrorNotice() {
@@ -253,17 +733,21 @@
   });
 
   async function main() {
-    if (
-      hasNativeOwnership(document) ||
-      !document.querySelector("#music-grid [data-item-id]")
-    ) {
+    if (hasNativeOwnership(document)) {
+      return;
+    }
+
+    const musicGrid = document.querySelector("#music-grid");
+    if (!musicGrid) {
       return;
     }
 
     addStyles();
+    const artistBrowser = setupArtistBrowser(musicGrid);
     try {
       const ownedKeys = await loadOwnedKeys();
       markDiscography(ownedKeys);
+      artistBrowser?.setOwnedKeys(ownedKeys);
     } catch (error) {
       console.warn("Bandcamp Improver:", error);
       showErrorNotice();
