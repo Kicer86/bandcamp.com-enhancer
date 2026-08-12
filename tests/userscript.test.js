@@ -10,6 +10,7 @@ const {
   normalizeArtistName,
   ownedKeysFromSummary,
   releaseTypeLabel,
+  safeReleaseUrl,
 } = require("../bandcamp-com-enhancer.user.js");
 
 test("uses an ownership cache only for the same identified fan", () => {
@@ -24,6 +25,27 @@ test("uses an ownership cache only for the same identified fan", () => {
   assert.equal(isCurrentOwnedCache(cache, null, now), false);
   assert.equal(isCurrentOwnedCache({ ...cache, fanId: null }, 42, now), false);
   assert.equal(isCurrentOwnedCache(cache, 43, now), false);
+});
+
+test("allows release links only on the current HTTPS origin", () => {
+  const origin = "https://label.bandcamp.com";
+
+  assert.equal(
+    safeReleaseUrl("/album/one", origin),
+    "https://label.bandcamp.com/album/one",
+  );
+  assert.equal(
+    safeReleaseUrl("https://label.bandcamp.com/track/two", origin),
+    "https://label.bandcamp.com/track/two",
+  );
+  assert.equal(safeReleaseUrl("javascript:alert(1)", origin), null);
+  assert.equal(safeReleaseUrl("data:text/html,unsafe", origin), null);
+  assert.equal(safeReleaseUrl("https://example.com/phishing", origin), null);
+  assert.equal(
+    safeReleaseUrl("http://label.bandcamp.com/album/one", origin),
+    null,
+  );
+  assert.equal(safeReleaseUrl(null, origin), null);
 });
 
 test("extracts Bandcamp keys from discography item identifiers", () => {

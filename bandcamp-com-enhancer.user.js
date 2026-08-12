@@ -147,6 +147,28 @@
     );
   }
 
+  function safeReleaseUrl(pageUrl, origin) {
+    if (typeof pageUrl !== "string" || typeof origin !== "string") {
+      return null;
+    }
+
+    try {
+      const baseUrl = new URL(origin);
+      const releaseUrl = new URL(pageUrl, baseUrl);
+      if (
+        baseUrl.protocol === "https:" &&
+        releaseUrl.protocol === "https:" &&
+        releaseUrl.origin === baseUrl.origin
+      ) {
+        return releaseUrl.href;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
       groupReleasesByArtist,
@@ -157,6 +179,7 @@
       normalizeArtistName,
       ownedKeysFromSummary,
       releaseTypeLabel,
+      safeReleaseUrl,
     };
     return;
   }
@@ -516,12 +539,17 @@
   }
 
   function createReleaseCard(item) {
+    const releaseUrl = safeReleaseUrl(item.page_url, location.origin);
+    if (!releaseUrl) {
+      return null;
+    }
+
     const card = document.createElement("li");
     card.className = "bc-improver-release-card";
     card.dataset.itemId = `${item.type}-${item.id}`;
 
     const link = document.createElement("a");
-    link.href = new URL(item.page_url, location.origin).href;
+    link.href = releaseUrl;
     link.append(createArtwork(item.art_id, "art"));
 
     const title = document.createElement("p");
@@ -708,7 +736,7 @@
 
       const releases = document.createElement("ol");
       releases.className = "bc-improver-release-grid";
-      releases.append(...group.items.map(createReleaseCard));
+      releases.append(...group.items.map(createReleaseCard).filter(Boolean));
       detailPanel.replaceChildren(header, releases);
       markDiscography(ownedKeys);
     }
