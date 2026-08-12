@@ -18,7 +18,7 @@
 (function () {
   "use strict";
 
-  const CACHE_KEY = "bandcamp-improver-owned-v1";
+  const CACHE_KEY = "bandcamp-com-enhancer-owned-v1";
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   const SUMMARY_URL = "https://bandcamp.com/api/fan/2/collection_summary";
   const ARTISTS_HASH = "#bc-artists";
