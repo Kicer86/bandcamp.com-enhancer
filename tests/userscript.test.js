@@ -15,7 +15,7 @@ const {
   safeReleaseUrl,
 } = require("../bandcamp-com-enhancer.user.js");
 
-test("runs only on Bandcamp discography paths", () => {
+test("runs only on Bandcamp profile homepages and discography paths", () => {
   const source = readFileSync(
     require.resolve("../bandcamp-com-enhancer.user.js"),
     "utf8",
@@ -23,6 +23,8 @@ test("runs only on Bandcamp discography paths", () => {
   const matchRules = source.match(/^\/\/ @match\s+.+$/gm);
 
   assert.deepEqual(matchRules, [
+    "// @match        https://*.bandcamp.com/",
+    "// @match        https://*.bandcamp.com/?*",
     "// @match        https://*.bandcamp.com/music*",
   ]);
 });
