@@ -1,17 +1,13 @@
+
 # Bandcamp.com Enhancer
 
-Userscript for Firefox and Greasemonkey that marks owned releases and makes large Bandcamp discographies easier to browse.
+Userscript for Firefox and Greasemonkey that makes Bandcamp discographies easier to browse.
 
-Current MVP features:
+Features:
 
-- adds an **Owned** badge to release artwork in an artist's discography (`/music`),
-- shows the release type under each item: **ALBUM** or **SINGLE**, including items loaded later by Bandcamp,
-- leaves Bandcamp's native **You own this** message on album and track pages without duplicating it,
-- adds an **artists** tab on accounts that do not have Bandcamp's native label tab,
-- groups artist-name variants without considering case, spaces, punctuation, or accents (for example, `WolfClub` and `W O L F C L U B`),
-- lets you filter artists and click through to all releases associated with an artist,
-- uses your logged-in Bandcamp session without asking for your password or profile name,
-- stores only owned-release identifiers locally and refreshes them every six hours.
+- highlights releases you already own,
+- shows whether a release is an album or single,
+- adds an artist browser to large label discographies, if Bandcamp does not provide one.
 
 ## Installation
 
@@ -28,7 +24,7 @@ Greasemonkey periodically checks the installation URL for a newer `@version` and
 
 ## Privacy and limitations
 
-The script contacts only `bandcamp.com` and uses the collection summary consumed by Bandcamp's own interface. On an individual release page, the native `#collect-item.purchased #purchased-msg` state remains the source of truth. No data is sent to any other service. The collection endpoint is not publicly documented, so a change on Bandcamp's side may require an update to the script.
+The script communicates only with Bandcamp and does not send data to other services.
 
 ## Tests
 
