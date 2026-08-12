@@ -4,12 +4,27 @@ const test = require("node:test");
 const {
   groupReleasesByArtist,
   hasNativeOwnership,
+  isCurrentOwnedCache,
   keyFromGridItemId,
   mergeReleases,
   normalizeArtistName,
   ownedKeysFromSummary,
   releaseTypeLabel,
 } = require("../bandcamp-com-enhancer.user.js");
+
+test("uses an ownership cache only for the same identified fan", () => {
+  const now = 2_000_000;
+  const cache = {
+    fanId: 42,
+    keys: ["a1"],
+    savedAt: now - 1_000,
+  };
+
+  assert.equal(isCurrentOwnedCache(cache, 42, now), true);
+  assert.equal(isCurrentOwnedCache(cache, null, now), false);
+  assert.equal(isCurrentOwnedCache({ ...cache, fanId: null }, 42, now), false);
+  assert.equal(isCurrentOwnedCache(cache, 43, now), false);
+});
 
 test("extracts Bandcamp keys from discography item identifiers", () => {
   assert.equal(keyFromGridItemId("album-1631511408"), "a1631511408");

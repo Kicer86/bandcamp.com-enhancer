@@ -136,10 +136,22 @@
     );
   }
 
+  function isCurrentOwnedCache(cached, fanId, now = Date.now()) {
+    return Boolean(
+      cached &&
+        Array.isArray(cached.keys) &&
+        now - cached.savedAt < CACHE_TTL_MS &&
+        fanId != null &&
+        cached.fanId != null &&
+        fanId === cached.fanId,
+    );
+  }
+
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
       groupReleasesByArtist,
       hasNativeOwnership,
+      isCurrentOwnedCache,
       keyFromGridItemId,
       mergeReleases,
       normalizeArtistName,
@@ -196,13 +208,7 @@
   async function loadOwnedKeys() {
     const fanId = currentFanId();
     const cached = await GM.getValue(CACHE_KEY, null);
-    const cacheIsCurrent =
-      cached &&
-      Array.isArray(cached.keys) &&
-      Date.now() - cached.savedAt < CACHE_TTL_MS &&
-      (!fanId || !cached.fanId || fanId === cached.fanId);
-
-    if (cacheIsCurrent) {
+    if (isCurrentOwnedCache(cached, fanId)) {
       return new Set(cached.keys);
     }
 
