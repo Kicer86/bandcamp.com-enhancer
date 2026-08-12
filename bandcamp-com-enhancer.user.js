@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bandcamp.com Enhancer
 // @namespace    https://github.com/Kicer86/bandcamp.com-enhancer
-// @version      0.7.0
+// @version      0.8.0
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
 // @homepageURL  https://github.com/Kicer86/bandcamp.com-enhancer
@@ -23,7 +23,7 @@
   "use strict";
 
   const CACHE_KEY = "bandcamp-com-enhancer-owned-v1";
-  const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   const SUMMARY_URL = "https://bandcamp.com/api/fan/2/collection_summary";
   const ARTISTS_HASH = "#bc-artists";
   const ARTIST_HASH_PREFIX = "#bc-artist=";
