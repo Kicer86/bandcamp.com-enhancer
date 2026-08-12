@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Bandcamp.com Enhancer
-// @namespace    https://github.com/local/bandcamp-com-enhancer
+// @namespace    https://github.com/Kicer86/bandcamp.com-enhancer
 // @version      0.6.0
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
