@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Bandcamp Improver
-// @namespace    https://github.com/local/bandcamp-improver
-// @version      0.5.0
+// @name         Bandcamp.com Enhancer
+// @namespace    https://github.com/local/bandcamp-com-enhancer
+// @version      0.6.0
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
 // @match        https://bandcamp.com/*
@@ -154,7 +154,7 @@
     try {
       return JSON.parse(footer.getAttribute("page-context")).identity?.fanId ?? null;
     } catch (error) {
-      console.warn("Bandcamp Improver: invalid user data", error);
+      console.warn("Bandcamp.com Enhancer: invalid user data", error);
       return null;
     }
   }
@@ -562,7 +562,7 @@
       const items = JSON.parse(serialized);
       return Array.isArray(items) ? items : [];
     } catch (error) {
-      console.warn("Bandcamp Improver: invalid release catalog", error);
+      console.warn("Bandcamp.com Enhancer: invalid release catalog", error);
       return [];
     }
   }
@@ -712,7 +712,7 @@
             location.hash.slice(ARTIST_HASH_PREFIX.length),
           );
         } catch (error) {
-          console.warn("Bandcamp Improver: invalid artist URL", error);
+          console.warn("Bandcamp.com Enhancer: invalid artist URL", error);
         }
       }
       const group = artistKey
@@ -791,7 +791,7 @@
     document.body.append(notice);
   }
 
-  GM.registerMenuCommand("Bandcamp Improver: refresh collection", async () => {
+  GM.registerMenuCommand("Bandcamp.com Enhancer: refresh collection", async () => {
     await GM.deleteValue(CACHE_KEY);
     location.reload();
   });
@@ -814,7 +814,7 @@
       markDiscography(ownedKeys);
       artistBrowser?.setOwnedKeys(ownedKeys);
     } catch (error) {
-      console.warn("Bandcamp Improver:", error);
+      console.warn("Bandcamp.com Enhancer:", error);
       showErrorNotice();
     }
   }

@@ -1,4 +1,4 @@
-# Bandcamp Improver
+# Bandcamp.com Enhancer
 
 Userscript for Firefox and Greasemonkey that marks owned releases and makes large Bandcamp discographies easier to browse.
 
@@ -17,10 +17,10 @@ Current MVP features:
 
 1. Install [Greasemonkey for Firefox](https://addons.mozilla.org/firefox/addon/greasemonkey/).
 2. In Greasemonkey, create a new user script.
-3. Replace its contents with the complete `bandcamp-improver.user.js` file and save it.
+3. Replace its contents with the complete `bandcamp-com-enhancer.user.js` file and save it.
 4. Log in to Bandcamp and open any artist's discography.
 
-After making a new purchase, use **Bandcamp Improver: refresh collection** from the Greasemonkey menu to clear the cache immediately.
+After making a new purchase, use **Bandcamp.com Enhancer: refresh collection** from the Greasemonkey menu to clear the cache immediately.
 
 ## Privacy and limitations
 

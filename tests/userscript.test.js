@@ -9,7 +9,7 @@ const {
   normalizeArtistName,
   ownedKeysFromSummary,
   releaseTypeLabel,
-} = require("../bandcamp-improver.user.js");
+} = require("../bandcamp-com-enhancer.user.js");
 
 test("extracts Bandcamp keys from discography item identifiers", () => {
   assert.equal(keyFromGridItemId("album-1631511408"), "a1631511408");
