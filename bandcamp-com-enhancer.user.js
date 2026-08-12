@@ -8,8 +8,7 @@
 // @supportURL   https://github.com/Kicer86/bandcamp.com-enhancer/issues
 // @downloadURL  https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
 // @updateURL    https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
-// @match        https://bandcamp.com/*
-// @match        https://*.bandcamp.com/*
+// @match        https://*.bandcamp.com/music*
 // @connect      bandcamp.com
 // @grant        GM.deleteValue
 // @grant        GM.getValue

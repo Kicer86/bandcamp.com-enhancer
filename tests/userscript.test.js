@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
 const test = require("node:test");
 
 const {
@@ -12,6 +13,18 @@ const {
   releaseTypeLabel,
   safeReleaseUrl,
 } = require("../bandcamp-com-enhancer.user.js");
+
+test("runs only on Bandcamp discography paths", () => {
+  const source = readFileSync(
+    require.resolve("../bandcamp-com-enhancer.user.js"),
+    "utf8",
+  );
+  const matchRules = source.match(/^\/\/ @match\s+.+$/gm);
+
+  assert.deepEqual(matchRules, [
+    "// @match        https://*.bandcamp.com/music*",
+  ]);
+});
 
 test("uses an ownership cache only for the same identified fan", () => {
   const now = 2_000_000;
