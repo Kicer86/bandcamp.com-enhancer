@@ -26,6 +26,10 @@ Greasemonkey periodically checks the installation URL for a newer `@version` and
 
 The script communicates only with Bandcamp and does not send data to other services.
 
+## AI assistance
+
+This project was developed with AI assistance (OpenAI Codex), under the direction and review of the maintainer.
+
 ## Tests
 
 Node.js 18 or newer is required:
