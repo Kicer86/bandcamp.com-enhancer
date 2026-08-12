@@ -1,34 +1,34 @@
 # Bandcamp Improver
 
-Userscript dla Firefoksa i Greasemonkey, który oznacza kupione wydania i usprawnia przeglądanie dużych dyskografii na Bandcampie.
+Userscript for Firefox and Greasemonkey that marks owned releases and makes large Bandcamp discographies easier to browse.
 
-Obecna wersja MVP:
+Current MVP features:
 
-- dodaje znaczek **✓ Masz** na okładkach w dyskografii artysty (`/music`),
-- pokazuje pod każdym wydaniem jego typ: **ALBUM** albo **SINGIEL**, także dla pozycji doładowywanych przez Bandcampa,
-- na stronie albumu lub utworu pozostawia natywny komunikat Bandcampa **You own this**, bez powielania go własnym znaczkiem,
-- na kontach bez natywnej zakładki **artists** tworzy ją z pełnego katalogu wydań,
-- grupuje warianty nazwy wykonawcy bez uwzględniania wielkości liter, odstępów, znaków specjalnych i akcentów (np. `WolfClub` oraz `W O L F C L U B`),
-- pozwala filtrować wykonawców i po kliknięciu pokazuje wszystkie przypisane do nich wydania,
-- korzysta z zalogowanej sesji Bandcampa — nie prosi o hasło ani nazwę profilu,
-- zapisuje lokalnie tylko identyfikatory kupionych wydań i odświeża je co 6 godzin.
+- adds an **Owned** badge to release artwork in an artist's discography (`/music`),
+- shows the release type under each item: **ALBUM** or **SINGLE**, including items loaded later by Bandcamp,
+- leaves Bandcamp's native **You own this** message on album and track pages without duplicating it,
+- adds an **artists** tab on accounts that do not have Bandcamp's native label tab,
+- groups artist-name variants without considering case, spaces, punctuation, or accents (for example, `WolfClub` and `W O L F C L U B`),
+- lets you filter artists and click through to all releases associated with an artist,
+- uses your logged-in Bandcamp session without asking for your password or profile name,
+- stores only owned-release identifiers locally and refreshes them every six hours.
 
-## Instalacja
+## Installation
 
-1. Zainstaluj dodatek [Greasemonkey dla Firefoksa](https://addons.mozilla.org/firefox/addon/greasemonkey/).
-2. W Greasemonkey wybierz utworzenie nowego skryptu użytkownika.
-3. Zastąp jego zawartość całym plikiem `bandcamp-improver.user.js` i zapisz.
-4. Zaloguj się do Bandcampa i otwórz dyskografię dowolnego artysty.
+1. Install [Greasemonkey for Firefox](https://addons.mozilla.org/firefox/addon/greasemonkey/).
+2. In Greasemonkey, create a new user script.
+3. Replace its contents with the complete `bandcamp-improver.user.js` file and save it.
+4. Log in to Bandcamp and open any artist's discography.
 
-Po nowym zakupie możesz użyć polecenia **Bandcamp Improver: odśwież kolekcję** z menu Greasemonkey, aby od razu wyczyścić pamięć podręczną.
+After making a new purchase, use **Bandcamp Improver: refresh collection** from the Greasemonkey menu to clear the cache immediately.
 
-## Prywatność i ograniczenia
+## Privacy and limitations
 
-Skrypt odpytuje wyłącznie `bandcamp.com` i używa podsumowania kolekcji, z którego korzysta sam interfejs Bandcampa. Na stronie konkretnego wydania źródłem prawdy pozostaje natywny stan `#collect-item.purchased #purchased-msg`. Dane nie są wysyłane do żadnego innego serwisu. Endpoint nie jest publicznie udokumentowany, więc zmiana po stronie Bandcampa może w przyszłości wymagać aktualizacji skryptu.
+The script contacts only `bandcamp.com` and uses the collection summary consumed by Bandcamp's own interface. On an individual release page, the native `#collect-item.purchased #purchased-msg` state remains the source of truth. No data is sent to any other service. The collection endpoint is not publicly documented, so a change on Bandcamp's side may require an update to the script.
 
-## Testy
+## Tests
 
-Wymagany jest Node.js 18 lub nowszy:
+Node.js 18 or newer is required:
 
 ```sh
 node --test tests/userscript.test.js

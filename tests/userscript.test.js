@@ -91,9 +91,9 @@ test("merges rendered and deferred catalog items without duplicates", () => {
   );
 });
 
-test("labels Bandcamp release types in Polish", () => {
+test("labels Bandcamp release types in English", () => {
   assert.equal(releaseTypeLabel("album"), "album");
-  assert.equal(releaseTypeLabel("track"), "singiel");
+  assert.equal(releaseTypeLabel("track"), "single");
   assert.equal(releaseTypeLabel("merch"), null);
   assert.equal(releaseTypeLabel(null), null);
 });

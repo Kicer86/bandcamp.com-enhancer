@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bandcamp Improver
 // @namespace    https://github.com/local/bandcamp-improver
-// @version      0.4.0
-// @description  Oznacza posiadane wydania i grupuje dyskografie według wykonawców.
+// @version      0.5.0
+// @description  Marks owned releases and groups discographies by artist.
 // @author       local
 // @match        https://bandcamp.com/*
 // @match        https://*.bandcamp.com/*
@@ -120,7 +120,7 @@
     if (type === "album") {
       return "album";
     } else if (type === "track") {
-      return "singiel";
+      return "single";
     }
 
     return null;
@@ -154,7 +154,7 @@
     try {
       return JSON.parse(footer.getAttribute("page-context")).identity?.fanId ?? null;
     } catch (error) {
-      console.warn("Bandcamp Improver: nieprawidłowe dane użytkownika", error);
+      console.warn("Bandcamp Improver: invalid user data", error);
       return null;
     }
   }
@@ -169,21 +169,21 @@
         headers: { Accept: "application/json" },
         onload(response) {
           if (response.status < 200 || response.status >= 300) {
-            reject(new Error(`Bandcamp odpowiedział kodem ${response.status}`));
+            reject(new Error(`Bandcamp returned status ${response.status}`));
             return;
           }
 
           try {
             resolve(JSON.parse(response.responseText));
           } catch (error) {
-            reject(new Error("Bandcamp nie zwrócił poprawnych danych JSON", { cause: error }));
+            reject(new Error("Bandcamp returned invalid JSON", { cause: error }));
           }
         },
         onerror() {
-          reject(new Error("Nie udało się połączyć z Bandcampem"));
+          reject(new Error("Could not connect to Bandcamp"));
         },
         ontimeout() {
-          reject(new Error("Upłynął limit czasu połączenia z Bandcampem"));
+          reject(new Error("The connection to Bandcamp timed out"));
         },
       });
     });
@@ -204,7 +204,7 @@
 
     const payload = await requestJson(SUMMARY_URL);
     if (!payload?.collection_summary?.tralbum_lookup) {
-      throw new Error("Brak kolekcji w odpowiedzi; użytkownik może nie być zalogowany");
+      throw new Error("The response did not include a collection; you may be logged out");
     }
 
     const keys = ownedKeysFromSummary(payload);
@@ -442,7 +442,7 @@
   function createBadge(label, variant) {
     const badge = document.createElement("span");
     badge.className = `bc-improver-owned-badge bc-improver-owned-badge--${variant}`;
-    badge.setAttribute("aria-label", "To wydanie jest w Twojej kolekcji");
+    badge.setAttribute("aria-label", "This release is in your collection");
 
     const icon = document.createElement("span");
     icon.className = "bc-ui2 collect-item-icon";
@@ -452,7 +452,7 @@
   }
 
   function releaseCountLabel(count) {
-    return count === 1 ? "1 wydanie" : `${count} wydań`;
+    return count === 1 ? "1 release" : `${count} releases`;
   }
 
   function createArtwork(artId, className) {
@@ -477,7 +477,7 @@
     link.href = `${ARTIST_HASH_PREFIX}${encodeURIComponent(group.key)}`;
     link.title =
       group.variants.length > 1
-        ? `Połączone warianty: ${group.variants.join(", ")}`
+      ? `Merged variants: ${group.variants.join(", ")}`
         : group.name;
     link.append(createArtwork(group.items[0]?.art_id, "bc-improver-artist-art art"));
 
@@ -562,7 +562,7 @@
       const items = JSON.parse(serialized);
       return Array.isArray(items) ? items : [];
     } catch (error) {
-      console.warn("Bandcamp Improver: nieprawidłowy katalog wydań", error);
+      console.warn("Bandcamp Improver: invalid release catalog", error);
       return [];
     }
   }
@@ -589,7 +589,7 @@
           artist: artist || undefined,
           id: Number(match[2]),
           page_url: link.getAttribute("href"),
-          title: titleElement?.textContent.trim() || "Bez tytułu",
+          title: titleElement?.textContent.trim() || "Untitled",
           type: match[1],
         };
       })
@@ -647,8 +647,8 @@
     const filter = document.createElement("input");
     filter.className = "bc-improver-artist-filter";
     filter.type = "search";
-    filter.placeholder = "Filtruj wykonawców";
-    filter.setAttribute("aria-label", "Filtruj wykonawców");
+    filter.placeholder = "Filter artists";
+    filter.setAttribute("aria-label", "Filter artists");
     toolbar.append(heading, filter);
 
     const artistsGrid = document.createElement("ol");
@@ -677,7 +677,7 @@
       const back = document.createElement("a");
       back.className = "bc-improver-back-link primaryText";
       back.href = ARTISTS_HASH;
-      back.textContent = "← wszyscy wykonawcy";
+      back.textContent = "← all artists";
 
       const artistHeading = document.createElement("h2");
       artistHeading.className = "primaryText";
@@ -687,7 +687,7 @@
       if (group.variants.length > 1) {
         const variants = document.createElement("div");
         variants.className = "bc-improver-artist-variants secondaryText";
-        variants.textContent = `Połączone nazwy: ${group.variants.join(" · ")}`;
+        variants.textContent = `Merged names: ${group.variants.join(" · ")}`;
         header.append(variants);
       }
 
@@ -712,7 +712,7 @@
             location.hash.slice(ARTIST_HASH_PREFIX.length),
           );
         } catch (error) {
-          console.warn("Bandcamp Improver: nieprawidłowy adres wykonawcy", error);
+          console.warn("Bandcamp Improver: invalid artist URL", error);
         }
       }
       const group = artistKey
@@ -744,7 +744,7 @@
     return {
       setOwnedKeys(keys) {
         ownedKeys = keys;
-        markDiscography(keys);
+          markDiscography(keys);
       },
     };
   }
@@ -767,7 +767,7 @@
         const art = item.querySelector(".art");
         if (art) {
           art.classList.add("bc-improver-owned-anchor");
-          art.append(createBadge("Masz", "cover"));
+          art.append(createBadge("Owned", "cover"));
         }
       });
   }
@@ -778,20 +778,20 @@
     notice.setAttribute("role", "status");
     notice.append(
       document.createTextNode(
-        "Nie udało się odczytać kolekcji. Zaloguj się do Bandcampa i odśwież stronę.",
+        "Could not read your collection. Log in to Bandcamp and refresh the page.",
       ),
     );
 
     const close = document.createElement("button");
     close.type = "button";
-    close.setAttribute("aria-label", "Zamknij");
+    close.setAttribute("aria-label", "Close");
     close.textContent = "×";
     close.addEventListener("click", () => notice.remove());
     notice.append(close);
     document.body.append(notice);
   }
 
-  GM.registerMenuCommand("Bandcamp Improver: odśwież kolekcję", async () => {
+  GM.registerMenuCommand("Bandcamp Improver: refresh collection", async () => {
     await GM.deleteValue(CACHE_KEY);
     location.reload();
   });
