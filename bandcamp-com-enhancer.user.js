@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bandcamp.com Enhancer
 // @namespace    https://github.com/Kicer86/bandcamp.com-enhancer
-// @version      0.8.1
+// @version      0.8.2
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
 // @homepageURL  https://github.com/Kicer86/bandcamp.com-enhancer
@@ -74,10 +74,9 @@
     const groupsByKey = new Map();
 
     for (const item of Array.isArray(items) ? items : []) {
-      const artist =
-        typeof item?.artist === "string" && item.artist.trim()
-          ? item.artist.trim()
-          : fallbackArtist;
+      const explicitArtist =
+        typeof item?.artist === "string" && item.artist.trim();
+      const artist = explicitArtist ? item.artist.trim() : fallbackArtist;
       const key = normalizeArtistName(artist);
       if (!key) {
         continue;
@@ -85,8 +84,16 @@
 
       let group = groupsByKey.get(key);
       if (!group) {
-        group = { key, name: artist, variants: [], items: [] };
+        group = {
+          hasExplicitArtist: Boolean(explicitArtist),
+          items: [],
+          key,
+          name: artist,
+          variants: [],
+        };
         groupsByKey.set(key, group);
+      } else if (explicitArtist) {
+        group.hasExplicitArtist = true;
       }
 
       if (!group.variants.includes(artist)) {
@@ -97,6 +104,13 @@
 
     return [...groupsByKey.values()].sort((left, right) =>
       left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
+    );
+  }
+
+  function hasMultipleExplicitArtistGroups(groups) {
+    return (
+      Array.isArray(groups) &&
+      groups.filter((group) => group?.hasExplicitArtist).length >= 2
     );
   }
 
@@ -172,6 +186,7 @@
     module.exports = {
       groupReleasesByArtist,
       hasNativeOwnership,
+      hasMultipleExplicitArtistGroups,
       isCurrentOwnedCache,
       keyFromGridItemId,
       mergeReleases,
@@ -651,7 +666,7 @@
       parseClientItems(musicGrid),
     );
     const groups = groupReleasesByArtist(catalog);
-    if (groups.length < 2) {
+    if (!hasMultipleExplicitArtistGroups(groups)) {
       return null;
     }
 

@@ -4,6 +4,7 @@ const test = require("node:test");
 
 const {
   groupReleasesByArtist,
+  hasMultipleExplicitArtistGroups,
   hasNativeOwnership,
   isCurrentOwnedCache,
   keyFromGridItemId,
@@ -123,6 +124,21 @@ test("groups releases by normalized artist while preserving variants", () => {
   assert.deepEqual(wolfClub.variants, ["W O L F C L U B", "WolfClub"]);
   assert.deepEqual(wolfClub.items.map((item) => item.id), [1, 2]);
   assert.equal(various.items[0].id, 4);
+});
+
+test("shows the artist browser only for catalogs with multiple assigned artists", () => {
+  const soloArtistCatalog = groupReleasesByArtist([
+    { id: 1, artist: "Perturbator", title: "Album" },
+    { id: 2, title: "Compilation" },
+  ]);
+  const labelCatalog = groupReleasesByArtist([
+    { id: 1, artist: "Artist One", title: "Album" },
+    { id: 2, artist: "Artist Two", title: "Single" },
+    { id: 3, title: "Compilation" },
+  ]);
+
+  assert.equal(hasMultipleExplicitArtistGroups(soloArtistCatalog), false);
+  assert.equal(hasMultipleExplicitArtistGroups(labelCatalog), true);
 });
 
 test("merges rendered and deferred catalog items without duplicates", () => {
