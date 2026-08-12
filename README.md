@@ -5,7 +5,7 @@ Userscript dla Firefoksa i Greasemonkey, który wyraźnie oznacza kupione wydani
 Obecna wersja MVP:
 
 - dodaje znaczek **✓ Masz** na okładkach w dyskografii artysty (`/music`),
-- dodaje znaczek **✓ W kolekcji** obok tytułu strony albumu lub utworu,
+- na stronie albumu lub utworu pozostawia natywny komunikat Bandcampa **You own this**, bez powielania go własnym znaczkiem,
 - korzysta z zalogowanej sesji Bandcampa — nie prosi o hasło ani nazwę profilu,
 - zapisuje lokalnie tylko identyfikatory kupionych wydań i odświeża je co 6 godzin.
 
@@ -20,7 +20,7 @@ Po nowym zakupie możesz użyć polecenia **Bandcamp Improver: odśwież kolekcj
 
 ## Prywatność i ograniczenia
 
-Skrypt odpytuje wyłącznie `bandcamp.com` i używa podsumowania kolekcji, z którego korzysta sam interfejs Bandcampa. Dane nie są wysyłane do żadnego innego serwisu. Endpoint nie jest publicznie udokumentowany, więc zmiana po stronie Bandcampa może w przyszłości wymagać aktualizacji skryptu.
+Skrypt odpytuje wyłącznie `bandcamp.com` i używa podsumowania kolekcji, z którego korzysta sam interfejs Bandcampa. Na stronie konkretnego wydania źródłem prawdy pozostaje natywny stan `#collect-item.purchased #purchased-msg`. Dane nie są wysyłane do żadnego innego serwisu. Endpoint nie jest publicznie udokumentowany, więc zmiana po stronie Bandcampa może w przyszłości wymagać aktualizacji skryptu.
 
 ## Testy
 

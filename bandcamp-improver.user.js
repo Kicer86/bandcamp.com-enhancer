@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bandcamp Improver
 // @namespace    https://github.com/local/bandcamp-improver
-// @version      0.1.0
+// @version      0.2.0
 // @description  Pokazuje wyraźne oznaczenie przy wydaniach, które masz już w kolekcji Bandcamp.
 // @author       local
 // @match        https://bandcamp.com/*
@@ -35,18 +35,6 @@
     return null;
   }
 
-  function keyFromPageProperties(properties) {
-    if (
-      properties &&
-      (properties.item_type === "a" || properties.item_type === "t") &&
-      Number.isInteger(properties.item_id)
-    ) {
-      return `${properties.item_type}${properties.item_id}`;
-    }
-
-    return null;
-  }
-
   function ownedKeysFromSummary(payload) {
     const lookup = payload?.collection_summary?.tralbum_lookup;
     if (!lookup || typeof lookup !== "object") {
@@ -58,27 +46,19 @@
       .map(([key]) => key);
   }
 
+  function hasNativeOwnership(pageDocument) {
+    return Boolean(
+      pageDocument?.querySelector?.("#collect-item.purchased #purchased-msg"),
+    );
+  }
+
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
+      hasNativeOwnership,
       keyFromGridItemId,
-      keyFromPageProperties,
       ownedKeysFromSummary,
     };
     return;
-  }
-
-  function readPageProperties() {
-    const meta = document.querySelector('meta[name="bc-page-properties"]');
-    if (!meta) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(meta.content);
-    } catch (error) {
-      console.warn("Bandcamp Improver: nieprawidłowe dane strony", error);
-      return null;
-    }
   }
 
   function currentFanId() {
@@ -93,13 +73,6 @@
       console.warn("Bandcamp Improver: nieprawidłowe dane użytkownika", error);
       return null;
     }
-  }
-
-  function hasSupportedContent() {
-    return Boolean(
-      document.querySelector("#music-grid [data-item-id]") ||
-        keyFromPageProperties(readPageProperties()),
-    );
   }
 
   function requestJson(url) {
@@ -189,8 +162,14 @@
         z-index: 20;
       }
 
-      .bc-improver-owned-badge--page {
-        margin-top: 10px;
+      .bc-improver-owned-badge .collect-item-icon {
+        background-position: -42px -73px;
+        display: inline-block;
+        flex: 0 0 auto;
+        height: 13px;
+        position: relative;
+        top: 1px;
+        width: 14px;
       }
 
       .bc-improver-notice {
@@ -228,8 +207,8 @@
     badge.setAttribute("aria-label", "To wydanie jest w Twojej kolekcji");
 
     const icon = document.createElement("span");
+    icon.className = "bc-ui2 collect-item-icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "✓";
     badge.append(icon, document.createTextNode(label));
     return badge;
   }
@@ -247,19 +226,6 @@
         art.append(createBadge("Masz", "cover"));
       }
     });
-  }
-
-  function markCurrentRelease(ownedKeys) {
-    const key = keyFromPageProperties(readPageProperties());
-    const nameSection = document.querySelector("#name-section");
-    if (
-      key &&
-      ownedKeys.has(key) &&
-      nameSection &&
-      !nameSection.querySelector(".bc-improver-owned-badge")
-    ) {
-      nameSection.append(createBadge("W kolekcji", "page"));
-    }
   }
 
   function showErrorNotice() {
@@ -287,7 +253,10 @@
   });
 
   async function main() {
-    if (!hasSupportedContent()) {
+    if (
+      hasNativeOwnership(document) ||
+      !document.querySelector("#music-grid [data-item-id]")
+    ) {
       return;
     }
 
@@ -295,7 +264,6 @@
     try {
       const ownedKeys = await loadOwnedKeys();
       markDiscography(ownedKeys);
-      markCurrentRelease(ownedKeys);
     } catch (error) {
       console.warn("Bandcamp Improver:", error);
       showErrorNotice();

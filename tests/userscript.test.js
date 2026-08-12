@@ -2,8 +2,8 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  hasNativeOwnership,
   keyFromGridItemId,
-  keyFromPageProperties,
   ownedKeysFromSummary,
 } = require("../bandcamp-improver.user.js");
 
@@ -12,15 +12,6 @@ test("extracts Bandcamp keys from discography item identifiers", () => {
   assert.equal(keyFromGridItemId("track-510564906"), "t510564906");
   assert.equal(keyFromGridItemId("merch-123"), null);
   assert.equal(keyFromGridItemId(null), null);
-});
-
-test("extracts the current release key from Bandcamp page properties", () => {
-  assert.equal(
-    keyFromPageProperties({ item_type: "a", item_id: 1631511408 }),
-    "a1631511408",
-  );
-  assert.equal(keyFromPageProperties({ item_type: "p", item_id: 123 }), null);
-  assert.equal(keyFromPageProperties(null), null);
 });
 
 test("keeps purchases and excludes wishlist-only entries", () => {
@@ -40,4 +31,17 @@ test("keeps purchases and excludes wishlist-only entries", () => {
 test("handles an empty or malformed collection summary", () => {
   assert.deepEqual(ownedKeysFromSummary(null), []);
   assert.deepEqual(ownedKeysFromSummary({}), []);
+});
+
+test("recognizes Bandcamp's native visible ownership message", () => {
+  const ownedPage = {
+    querySelector(selector) {
+      return selector === "#collect-item.purchased #purchased-msg" ? {} : null;
+    },
+  };
+  const unownedPage = { querySelector: () => null };
+
+  assert.equal(hasNativeOwnership(ownedPage), true);
+  assert.equal(hasNativeOwnership(unownedPage), false);
+  assert.equal(hasNativeOwnership(null), false);
 });
