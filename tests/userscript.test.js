@@ -4,6 +4,7 @@ const test = require("node:test");
 
 const {
   groupReleasesByArtist,
+  filterReleasesByType,
   hasMultipleExplicitArtistGroups,
   hasNativeOwnership,
   isCurrentOwnedCache,
@@ -11,11 +12,12 @@ const {
   mergeReleases,
   normalizeArtistName,
   ownedKeysFromSummary,
+  releaseMatchesFilter,
   releaseTypeLabel,
   safeReleaseUrl,
 } = require("../bandcamp-com-enhancer.user.js");
 
-test("runs only on Bandcamp profile homepages and discography paths", () => {
+test("runs on every Bandcamp profile path", () => {
   const source = readFileSync(
     require.resolve("../bandcamp-com-enhancer.user.js"),
     "utf8",
@@ -23,9 +25,7 @@ test("runs only on Bandcamp profile homepages and discography paths", () => {
   const matchRules = source.match(/^\/\/ @match\s+.+$/gm);
 
   assert.deepEqual(matchRules, [
-    "// @match        https://*.bandcamp.com/",
-    "// @match        https://*.bandcamp.com/?*",
-    "// @match        https://*.bandcamp.com/music*",
+    "// @match        https://*.bandcamp.com/*",
   ]);
 });
 
@@ -164,4 +164,30 @@ test("labels Bandcamp release types in English", () => {
   assert.equal(releaseTypeLabel("track"), "single");
   assert.equal(releaseTypeLabel("merch"), null);
   assert.equal(releaseTypeLabel(null), null);
+});
+
+test("filters an artist's releases by the selected catalog type", () => {
+  const releases = [
+    { id: 1, type: "album" },
+    { id: 2, type: "track" },
+    { id: 3, type: "album" },
+  ];
+
+  assert.deepEqual(filterReleasesByType(releases, "all"), releases);
+  assert.deepEqual(
+    filterReleasesByType(releases, "albums").map((item) => item.id),
+    [1, 3],
+  );
+  assert.deepEqual(
+    filterReleasesByType(releases, "singles").map((item) => item.id),
+    [2],
+  );
+  assert.deepEqual(filterReleasesByType(releases, "unknown"), []);
+});
+
+test("matches the types used by both catalog filters", () => {
+  assert.equal(releaseMatchesFilter("album", "albums"), true);
+  assert.equal(releaseMatchesFilter("track", "singles"), true);
+  assert.equal(releaseMatchesFilter("track", "albums"), false);
+  assert.equal(releaseMatchesFilter("merch", "singles"), false);
 });

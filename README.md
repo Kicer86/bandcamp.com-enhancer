@@ -7,7 +7,8 @@ Features:
 
 - highlights releases you already own,
 - shows whether a release is an album or single,
-- adds an artist browser to large label discographies, if Bandcamp does not provide one.
+- adds an artist browser to large label discographies, if Bandcamp does not provide one, with a link from every profile tab,
+- lets you filter an artist's releases by all, albums, or singles.
 
 ## Installation
 

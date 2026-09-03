@@ -1,16 +1,14 @@
 // ==UserScript==
 // @name         Bandcamp.com Enhancer
 // @namespace    https://github.com/Kicer86/bandcamp.com-enhancer
-// @version      0.8.3
+// @version      0.9.0
 // @description  Marks owned releases and groups discographies by artist.
 // @author       local
 // @homepageURL  https://github.com/Kicer86/bandcamp.com-enhancer
 // @supportURL   https://github.com/Kicer86/bandcamp.com-enhancer/issues
 // @downloadURL  https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
 // @updateURL    https://raw.githubusercontent.com/Kicer86/bandcamp.com-enhancer/master/bandcamp-com-enhancer.user.js
-// @match        https://*.bandcamp.com/
-// @match        https://*.bandcamp.com/?*
-// @match        https://*.bandcamp.com/music*
+// @match        https://*.bandcamp.com/*
 // @connect      bandcamp.com
 // @grant        GM.deleteValue
 // @grant        GM.getValue
@@ -145,6 +143,25 @@
     return null;
   }
 
+  function filterReleasesByType(items, filter) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    if (filter === "all") {
+      return items;
+    }
+
+    return items.filter((item) => releaseMatchesFilter(item?.type, filter));
+  }
+
+  function releaseMatchesFilter(type, filter) {
+    return (
+      (filter === "albums" && type === "album") ||
+      (filter === "singles" && type === "track")
+    );
+  }
+
   function hasNativeOwnership(pageDocument) {
     return Boolean(
       pageDocument?.querySelector?.("#collect-item.purchased #purchased-msg"),
@@ -187,6 +204,7 @@
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
       groupReleasesByArtist,
+      filterReleasesByType,
       hasNativeOwnership,
       hasMultipleExplicitArtistGroups,
       isCurrentOwnedCache,
@@ -194,6 +212,7 @@
       mergeReleases,
       normalizeArtistName,
       ownedKeysFromSummary,
+      releaseMatchesFilter,
       releaseTypeLabel,
       safeReleaseUrl,
     };
@@ -306,7 +325,12 @@
       }
 
       .bc-improver-artists-view[hidden],
+      .bc-improver-music-filters[hidden],
       #music-grid[hidden] {
+        display: none !important;
+      }
+
+      #music-grid [data-item-id][hidden] {
         display: none !important;
       }
 
@@ -387,6 +411,33 @@
       .bc-improver-artist-detail-header h2 {
         font-size: 22px;
         margin: 10px 0 0;
+      }
+
+      .bc-improver-release-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 14px;
+      }
+
+      .bc-improver-music-filters {
+        margin: 0 0 18px;
+      }
+
+      .bc-improver-release-filter {
+        background: #fff;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+        color: #333;
+        cursor: pointer;
+        font: 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        padding: 6px 10px;
+      }
+
+      .bc-improver-release-filter.active {
+        background: #333;
+        border-color: #333;
+        color: #fff;
       }
 
       .bc-improver-back-link {
@@ -606,6 +657,56 @@
     observer.observe(musicGrid, { childList: true, subtree: true });
   }
 
+  function setupMusicFilters(musicGrid) {
+    const filters = document.createElement("div");
+    filters.className = "bc-improver-release-filters bc-improver-music-filters";
+    filters.setAttribute("aria-label", "Release type");
+
+    let selectedFilter = "all";
+    const filterButtons = [
+      ["all", "all"],
+      ["albums", "albums"],
+      ["singles", "singles"],
+    ].map(([filter, label]) => {
+      const button = document.createElement("button");
+      button.className = "bc-improver-release-filter";
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        selectedFilter = filter;
+        applyFilter();
+      });
+      filters.append(button);
+      return [filter, button];
+    });
+    musicGrid.before(filters);
+
+    function applyFilter() {
+      for (const item of musicGrid.querySelectorAll("[data-item-id]")) {
+        const match = /^(album|track)-\d+$/.exec(item.dataset.itemId ?? "");
+        const matchesFilter =
+          selectedFilter === "all" ||
+          releaseMatchesFilter(match?.[1], selectedFilter);
+        item.hidden = !matchesFilter;
+      }
+      for (const [filter, button] of filterButtons) {
+        const isActive = filter === selectedFilter;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      }
+    }
+
+    const observer = new MutationObserver(applyFilter);
+    observer.observe(musicGrid, { childList: true, subtree: true });
+    applyFilter();
+
+    return {
+      setHidden(hidden) {
+        filters.hidden = hidden;
+      },
+    };
+  }
+
   function parseClientItems(musicGrid) {
     const serialized = musicGrid?.getAttribute("data-client-items");
     if (!serialized) {
@@ -650,7 +751,14 @@
       .filter(Boolean);
   }
 
-  function setupArtistBrowser(musicGrid) {
+  function catalogFromMusicGrid(musicGrid) {
+    return mergeReleases(
+      readRenderedItems(musicGrid),
+      parseClientItems(musicGrid),
+    );
+  }
+
+  function setupArtistBrowser(musicGrid, musicFilters) {
     const navbar = document.querySelector("#band-navbar");
     if (!navbar) {
       return null;
@@ -663,10 +771,7 @@
       return null;
     }
 
-    const catalog = mergeReleases(
-      readRenderedItems(musicGrid),
-      parseClientItems(musicGrid),
-    );
+    const catalog = catalogFromMusicGrid(musicGrid);
     const groups = groupReleasesByArtist(catalog);
     if (!hasMultipleExplicitArtistGroups(groups)) {
       return null;
@@ -750,11 +855,48 @@
       count.textContent = releaseCountLabel(group.items.length);
       header.append(count);
 
+      const filters = document.createElement("div");
+      filters.className = "bc-improver-release-filters";
+      filters.setAttribute("aria-label", "Release type");
+
       const releases = document.createElement("ol");
       releases.className = "bc-improver-release-grid";
-      releases.append(...group.items.map(createReleaseCard).filter(Boolean));
+
+      let selectedFilter = "all";
+      const filterButtons = [
+        ["all", "all"],
+        ["albums", "albums"],
+        ["singles", "singles"],
+      ].map(([filter, label]) => {
+        const button = document.createElement("button");
+        button.className = "bc-improver-release-filter";
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", () => {
+          selectedFilter = filter;
+          renderReleases();
+        });
+        filters.append(button);
+        return [filter, button];
+      });
+
+      function renderReleases() {
+        releases.replaceChildren(
+          ...filterReleasesByType(group.items, selectedFilter)
+            .map(createReleaseCard)
+            .filter(Boolean),
+        );
+        for (const [filter, button] of filterButtons) {
+          const isActive = filter === selectedFilter;
+          button.classList.toggle("active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
+        }
+        markDiscography(ownedKeys);
+      }
+
+      header.append(filters);
       detailPanel.replaceChildren(header, releases);
-      markDiscography(ownedKeys);
+      renderReleases();
     }
 
     function applyRoute() {
@@ -775,6 +917,7 @@
       const isArtistRoute = isArtistsIndex || Boolean(group);
 
       musicGrid.hidden = isArtistRoute;
+      musicFilters?.setHidden(isArtistRoute);
       view.hidden = !isArtistRoute;
       tabLink.classList.toggle("active", isArtistRoute);
       tabLink.classList.toggle("primaryText", isArtistRoute);
@@ -801,6 +944,71 @@
           markDiscography(keys);
       },
     };
+  }
+
+  async function addArtistNavigationLink() {
+    const navbar = document.querySelector("#band-navbar");
+    if (!navbar) {
+      return;
+    }
+
+    const links = [...navbar.querySelectorAll("a[href]")];
+    if (
+      links.some(
+        (link) => new URL(link.href, location.origin).pathname === "/artists",
+      )
+    ) {
+      return;
+    }
+
+    const musicLink = links.find(
+      (link) => new URL(link.href, location.origin).pathname === "/music",
+    );
+    const musicTab = musicLink?.closest("li");
+    if (!musicLink || !musicTab) {
+      return;
+    }
+
+    const artistsUrl = new URL(musicLink.href, location.origin);
+    artistsUrl.hash = ARTISTS_HASH;
+    if (artistsUrl.origin !== location.origin || artistsUrl.pathname !== "/music") {
+      return;
+    }
+
+    try {
+      const response = await fetch(artistsUrl.href);
+      if (!response.ok) {
+        throw new Error(`Bandcamp returned status ${response.status}`);
+      }
+
+      const musicDocument = new DOMParser().parseFromString(
+        await response.text(),
+        "text/html",
+      );
+      const musicGrid = musicDocument.querySelector("#music-grid");
+      const groups = groupReleasesByArtist(catalogFromMusicGrid(musicGrid));
+      if (!hasMultipleExplicitArtistGroups(groups)) {
+        return;
+      }
+    } catch (error) {
+      console.warn("Bandcamp.com Enhancer: could not read the music catalog", error);
+      return;
+    }
+
+    if (
+      links.some(
+        (link) => new URL(link.href, location.origin).href === artistsUrl.href,
+      )
+    ) {
+      return;
+    }
+
+    const tabItem = document.createElement("li");
+    const tabLink = document.createElement("a");
+    tabLink.href = artistsUrl.href;
+    tabLink.textContent = "artists";
+    tabItem.append(tabLink);
+    musicTab.before(tabItem);
   }
 
   function markDiscography(ownedKeys) {
@@ -851,17 +1059,19 @@
   });
 
   async function main() {
+    const musicGrid = document.querySelector("#music-grid");
+    if (!musicGrid) {
+      await addArtistNavigationLink();
+      return;
+    }
+
     if (hasNativeOwnership(document)) {
       return;
     }
 
-    const musicGrid = document.querySelector("#music-grid");
-    if (!musicGrid) {
-      return;
-    }
-
     addStyles();
-    const artistBrowser = setupArtistBrowser(musicGrid);
+    const musicFilters = setupMusicFilters(musicGrid);
+    const artistBrowser = setupArtistBrowser(musicGrid, musicFilters);
     observeReleaseTypeLabels(musicGrid);
     try {
       const ownedKeys = await loadOwnedKeys();
